@@ -40,6 +40,7 @@ class MyHandler(FileSystemEventHandler):
     def on_created(self, event):
         """Handle creation of a new log file."""
         print(f"Processing newly created file: {event.src_path}")
+        time.sleep(2)
         start_time = datetime.datetime.now()
         log_file = event.src_path
         _, file_ext = os.path.splitext(log_file)

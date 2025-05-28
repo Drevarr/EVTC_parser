@@ -35,6 +35,7 @@ team_colors = {
 class MyHandler(FileSystemEventHandler):
     def on_created(self, event):
         print(f"File created: {event.src_path}")
+        time.sleep(2)
         logfile = event.src_path
         start_time = datetime.datetime.now()
         header, agents, skills, events =parser.parse_evtc(logfile)
