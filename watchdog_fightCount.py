@@ -10,6 +10,8 @@ from urllib.parse import urlparse
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
+ARCDPS_LOG_DIR = "d:\\test\\"
+
 prof_abbrv = {
     "Guardian":"Gn", "Dragonhunter":"Dh", "Firebrand":"Fb", "Willbender":"Wb",
     "Warrior":"War", "Berserker":"Brs", "Spellbreaker":"Spb", "Bladesworn":"Bds",
@@ -59,7 +61,13 @@ class MyHandler(FileSystemEventHandler):
             except Exception as e:
                 print(f"Error processing {log_file}: {e}")
                 return
-
+        elif file_ext.lower() == '.evtc':
+            try:
+                header, agents, skills, events = parser.parse_evtc(log_file)
+            except Exception as e:
+                print(f"Error processing {log_file}: {e}")
+                return
+            
         team_changes = collect_team_changes(events)
         fight_count = collect_fight_count(agents, team_changes)
         print_fight_count(fight_count)
@@ -162,7 +170,7 @@ def send_to_discord(webhook_url, file_path, analysis):
 
 
 if __name__ == "__main__":
-    path_to_watch = "d:\\test\\"  # Replace with the path to the directory you want to monitor
+    path_to_watch = ARCDPS_LOG_DIR  # Replace with the path to the directory you want to monitor
     event_handler = MyHandler()
     observer = Observer()
     observer.schedule(event_handler, path_to_watch, recursive=True)
