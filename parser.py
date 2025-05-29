@@ -1,9 +1,9 @@
-import datetime
 import struct
 import sys
 import traceback
 from typing import List, Dict, NamedTuple, Tuple
 from collections import defaultdict
+from dataclasses import dataclass
 
 AGENT_STRUCT = '<QIIHHHHHH64s4x'  # Q: uint64, I: uint32, H: uint16, 64s: char[64]
 AGENT_SIZE = struct.calcsize(AGENT_STRUCT)
@@ -11,13 +11,15 @@ AGENT_SIZE = struct.calcsize(AGENT_STRUCT)
 EVENT_STRUCT = '<qQQiiIIHHHHBBBBBBBBBBBBI'
 EVENT_SIZE = struct.calcsize(EVENT_STRUCT)
 
-class EvtcHeader(NamedTuple):
+@dataclass
+class EvtcHeader:
     magic: str
     version: str
     instruction_set_id: int
     revision: int
 
-class EvtcAgent(NamedTuple):
+@dataclass
+class EvtcAgent:
     address: int
     profession: int
     is_elite: int
@@ -26,13 +28,17 @@ class EvtcAgent(NamedTuple):
     condition: int
     concentration: int
     name: str
-    team: int
+    party: int
+    team: str
+    instid: int
 
-class EvtcSkill(NamedTuple):
+@dataclass
+class EvtcSkill:
     skill_id: int
     name: str
 
-class EvtcEvent(NamedTuple):
+@dataclass
+class EvtcEvent:
     time: int
     src_agent: int
     dst_agent: int
@@ -58,7 +64,7 @@ class EvtcEvent(NamedTuple):
     is_offcycle: int
     pad: int
 
-def parse_evtc(file_path: str) -> tuple[EvtcHeader, List[EvtcAgent], List[EvtcSkill], List[EvtcEvent]]:
+def parse_evtc(file_path: str) -> Tuple[EvtcHeader, List[EvtcAgent], List[EvtcSkill], List[EvtcEvent]]:
     """
     Parse an EVTC binary log file and return its components.
     (Same as previous implementation, included for completeness)
@@ -93,9 +99,9 @@ def parse_evtc(file_path: str) -> tuple[EvtcHeader, List[EvtcAgent], List[EvtcSk
                 addr, prof, is_elite, toughness, concentration, healing, hitbox_width, condition, hitbox_height, name = struct.unpack(AGENT_STRUCT, agent_data)
                 name = name.decode('utf-8').rstrip('\x00')
                 if "." in name:
-                    team = name[-1]
+                    party = name[-1]
                 else:
-                    team = 0
+                    party = 0
                 agents.append(EvtcAgent(
                     address=addr,
                     profession=prof,
@@ -105,7 +111,10 @@ def parse_evtc(file_path: str) -> tuple[EvtcHeader, List[EvtcAgent], List[EvtcSk
                     condition=condition,
                     concentration=concentration,
                     name=name,
-                    team=team
+                    party=party,
+                    team="",
+                    instid = 0
+
                 ))
 
             skill_count_data = f.read(4)
