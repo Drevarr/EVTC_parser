@@ -11,6 +11,7 @@ from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
 ARCDPS_LOG_DIR = "d:\\test\\"
+WEBHOOK_URL = ""  # Update with a valid Discord webhook URL
 
 prof_abbrv = {
     "Guardian":"Gn", "Dragonhunter":"Dh", "Firebrand":"Fb", "Willbender":"Wb",
@@ -75,6 +76,7 @@ class MyHandler(FileSystemEventHandler):
         end_time = datetime.datetime.now()
         print(f"File: {log_file} processed, {len(agents)} agents, {len(skills)} skills, {len(events)} events")
         print(f"Processing Time:  {end_time-start_time}")
+        send_to_discord(WEBHOOK_URL, log_file, fight_count)
 
 def collect_team_changes(events):
     team_changes = {}
@@ -122,37 +124,36 @@ def print_fight_count(fight_count):
         print(sorted_team)
         print(f"-----=====End of {teamColor}=====-----\n")
 
-def send_to_discord(webhook_url, file_path, analysis):
+def send_to_discord(webhook_url, file_path, fight_count):
     """
     Send the analysis to a Discord webhook as an embed.
     """
-    if not analysis:
+    if not fight_count:
         message = f"No valid data to analyze in {os.path.basename(file_path)}"
         payload = {"content": message}
     else:
-        player_count_per_team = analysis['player_count_per_team']
-        team_prof_counts = analysis['team_prof_counts']
-
         # Create embed
         embed = {
             "title": f"EVTC Log Analysis: {os.path.basename(file_path)}",
             "color": 0x00FF00,  # Green color
             "fields": []
         }
-
-        for team_id in sorted(player_count_per_team.keys()):
-            count = player_count_per_team[team_id]
+        #Report non-squad players by team color, descending order of profession count
+        for teamColor in fight_count:
+            if teamColor in ['squad', 'Unk']:
+                continue
+            sorted_team = dict(sorted(fight_count[teamColor].items(), key=lambda item: item[1], reverse=True))
+            team_count = sum(fight_count[teamColor].values())
             # Create field for team player count
             embed["fields"].append({
-                "name": f"Team {team_id}",
-                "value": f"{count} players",
+                "name": f"Team {teamColor}",
+                "value": f"{team_count} players",
                 "inline": False
             })
             # Add profession breakdown
-            prof_lines = [f"{prof}: {count}" for prof, count in sorted(team_prof_counts[team_id].items())]
             embed["fields"].append({
                 "name": "Professions",
-                "value": "\n".join(prof_lines) if prof_lines else "None",
+                "value": f"{sorted_team}\n",
                 "inline": True
             })
 
