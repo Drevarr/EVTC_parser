@@ -71,7 +71,7 @@ class MyHandler(FileSystemEventHandler):
                 print(f"Error processing {log_file}: {e}")
                 return
             
-        team_changes, instance_id = collect_team_changes(events)
+        team_changes = collect_team_changes(events)
         fight_count = collect_fight_count(agents, team_changes)
         print_fight_count(fight_count)
 
@@ -81,15 +81,8 @@ class MyHandler(FileSystemEventHandler):
         if WEBHOOK_URL:
             send_to_discord(WEBHOOK_URL, log_file, fight_count)
 
-def collect_team_changes(events: List[parser.EvtcEvent]) -> Tuple[Dict[int, int], Dict[int, int]]:
-    """
-    Collect team changes from state change events.
+def collect_team_changes(events):
 
-    Args:
-        events (List[parser.EvtcEvent]): List of EvtcEvent objects.
-    Returns:
-        Dict[int, int]: Mapping of agent addresses to team numbers.
-    """
     team_changes = {}
     instance_id = {}
 
@@ -99,13 +92,16 @@ def collect_team_changes(events: List[parser.EvtcEvent]) -> Tuple[Dict[int, int]
             team = event.value
             if team:
                 team_changes[agent] = team
-        if not event.is_statechange and event.src_instid:
-            agent = event.src_agent
-            instid = event.src_instid
-            if instid:
-                instance_id[agent] = instid
 
-    return team_changes, instance_id
+    return team_changes
+
+def set_agent_instance_id(agents, events, instance_id) -> None:
+    for agent in agents:
+        for event in events:
+            if not event.is_statechange and event.src_instid and event.src_agent == agent.address:
+                agent.instid = event.src_instid
+                break
+
 
 def collect_fight_count(agents: List[parser.EvtcAgent], team_changes: Dict[int, int]) -> Dict[str, Dict[str, int]]:
     """
