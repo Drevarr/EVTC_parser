@@ -1,4 +1,5 @@
 import parser
+import configparser
 import datetime
 import os
 import requests
@@ -13,9 +14,6 @@ from urllib.parse import urlparse
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
-ARCDPS_LOG_DIR = "d:\\test\\"
-LOG_DELAY = 2
-WEBHOOK_URL = ""  # Update with a valid Discord webhook URL
 
 prof_abbrv = {
     "Guardian":"Gn", "Dragonhunter":"Dh", "Firebrand":"Fb", "Willbender":"Wb",
@@ -82,7 +80,10 @@ class MyHandler(FileSystemEventHandler):
         print(f"File: {log_file} processed, {len(agents)} agents, {len(skills)} skills, {len(events)} events")
         print(f"Processing Time:  {end_time-start_time}")
         if WEBHOOK_URL:
-            send_to_discord(WEBHOOK_URL, log_file, team_report)
+            send_to_discord(WEBHOOK_URL, log_file, team_report, squad_count)
+
+def load_config(config_file='config.ini'):
+    config = configparser.ConfigParser()
 
 def set_team_changes(agents, events):
     # Preprocess events to map src_agent to the latest team assignment
@@ -150,7 +151,7 @@ def summarize_non_squad_players(agents):
 
     return squad_count, non_squad_summary
 
-def send_to_discord(webhook_url: str, file_path: str, summary) -> None:
+def send_to_discord(webhook_url: str, file_path: str, summary, squad_count) -> None:
     """
     Send the analysis to a Discord webhook as an embed.
 
@@ -185,6 +186,11 @@ def send_to_discord(webhook_url: str, file_path: str, summary) -> None:
                 "value": f"{team_report}",
                 "inline": False
             })
+        embed["fields"].append({
+            "name": f"Squad Count: ",
+            "value": f"{squad_count} squad members",
+            "inline": False
+        })
         payload = {"embeds": [embed]}
 
     try:
@@ -198,6 +204,15 @@ def send_to_discord(webhook_url: str, file_path: str, summary) -> None:
 
 
 if __name__ == "__main__":
+    # Read the config file
+    config_ini = configparser.ConfigParser()
+    config_ini.read('config.ini')
+
+    ARCDPS_LOG_DIR = config_ini['Settings']['ARCDPS_LOG_DIR']
+    LOG_DELAY = int(config_ini['Settings']['LOG_DELAY'])
+    WEBHOOK_URL = config_ini['Settings']['WEBHOOK_URL']
+
+
     path_to_watch = ARCDPS_LOG_DIR  # Replace with the path to the directory you want to monitor
     event_handler = MyHandler()
     observer = Observer()

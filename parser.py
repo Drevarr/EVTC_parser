@@ -84,7 +84,7 @@ def parse_evtc(file_path: str) -> Tuple[EvtcHeader, List[EvtcAgent], List[EvtcSk
                 instruction_set_id=instruction_set_id,
                 revision=revision
             )
-            print(f"Header parsed: version={version}, revision={revision}, instruction_set_id={instruction_set_id}")
+            #print(f"Header parsed: version={version}, revision={revision}, instruction_set_id={instruction_set_id}")
             agent_count_data = f.read(4)
             if len(agent_count_data) < 4:
                 raise EOFError("Unexpected EOF while reading agent count")
