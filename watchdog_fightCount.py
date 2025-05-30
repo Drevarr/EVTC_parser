@@ -141,9 +141,11 @@ def summarize_non_squad_players(agents):
         return squad_count, {}
 
     for team in sorted(non_squad_summary.keys()):
-        team_report = f"Team {team}:\n"
-        for prof, count in sorted(non_squad_summary[team].items()):
-            team_report += f"  {prof}: {count} |"
+        team_count = sum(non_squad_summary[team].values())
+        team_report = f"Team {team}: {team_count}\n"
+        sorted_team = dict(sorted(non_squad_summary[team].items(), key=lambda item: item[1], reverse=True))
+        for prof in sorted_team:
+            team_report += f"  {prof}: {sorted_team[prof]} |"
         print(team_report)
 
     return squad_count, non_squad_summary
@@ -174,10 +176,12 @@ def send_to_discord(webhook_url: str, file_path: str, summary) -> None:
         # Create field for team report
         for team in sorted(summary.keys()):
             team_report = f"|"
-            for prof, count in sorted(summary[team].items()):
-                team_report += f" {prof}: {count} |"
+            team_count = sum(summary[team].values())
+            sorted_team = dict(sorted(summary[team].items(), key=lambda item: item[1], reverse=True))
+            for prof in sorted_team:
+                team_report += f" {prof}: {sorted_team[prof]} |"
             embed["fields"].append({
-                "name": f"Team {team}:",
+                "name": f"Team {team}: {team_count}",
                 "value": f"{team_report}",
                 "inline": False
             })
