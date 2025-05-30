@@ -2,10 +2,12 @@ import parser
 import datetime
 import os
 import requests
-import sys
 import tempfile
 import time
 import zipfile
+from collections import defaultdict, Counter
+from typing import Optional
+from dataclasses import dataclass
 from typing import List, Dict, NamedTuple, Tuple
 from urllib.parse import urlparse
 from watchdog.observers import Observer
@@ -71,95 +73,82 @@ class MyHandler(FileSystemEventHandler):
                 print(f"Error processing {log_file}: {e}")
                 return
             
-        team_changes = collect_team_changes(events)
-        fight_count = collect_fight_count(agents, team_changes)
-        print_fight_count(fight_count)
+        set_team_changes(agents, events)
+        set_agent_instance_id(agents, events)
+        squad_count, team_report = summarize_non_squad_players(agents)
+        print(f"Squad players: {squad_count}")
 
         end_time = datetime.datetime.now()
         print(f"File: {log_file} processed, {len(agents)} agents, {len(skills)} skills, {len(events)} events")
         print(f"Processing Time:  {end_time-start_time}")
         if WEBHOOK_URL:
-            send_to_discord(WEBHOOK_URL, log_file, fight_count)
+            send_to_discord(WEBHOOK_URL, log_file, team_report)
 
-def collect_team_changes(events):
-
-    team_changes = {}
-    instance_id = {}
-
+def set_team_changes(agents, events):
+    # Preprocess events to map src_agent to the latest team assignment
+    team_assignments = {}
     for event in events:
-        if event.is_statechange == 22:
-            agent = event.src_agent
-            team = event.value
-            if team:
-                team_changes[agent] = team
+        if event.is_statechange == 22 and event.src_agent:
+            assigned_team = event.dst_agent if event.dst_agent else event.value
+            if assigned_team != 0:
+                team_assignments[event.src_agent] = assigned_team
 
-    return team_changes
-
-def set_agent_instance_id(agents, events, instance_id) -> None:
+    # Assign teams to agents using the preprocessed map
     for agent in agents:
-        for event in events:
-            if not event.is_statechange and event.src_instid and event.src_agent == agent.address:
-                agent.instid = event.src_instid
-                break
+        if agent.is_elite != 4294967295 and not agent.team:
+            assigned_team = team_assignments.get(agent.address)
+            if assigned_team in team_colors:
+                agent.team = team_colors[assigned_team]
 
+def set_agent_instance_id(agents, events):
+    # Preprocess events to map src_agent to the first src_instid
+    instance_ids = {}
+    for event in events:
+        if event.is_statechange != 22 and event.src_instid and event.src_agent:
+            # Only store the first instance ID for each src_agent
+            if event.src_agent not in instance_ids:
+                instance_ids[event.src_agent] = event.src_instid
 
-def collect_fight_count(agents: List[parser.EvtcAgent], team_changes: Dict[int, int]) -> Dict[str, Dict[str, int]]:
-    """
-    Collect team changes from state change events.
-
-    Args:
-        agents (List[parser.EvtcAgent]): List of EvtcAgent objects.
-        team_changes (Dict[int, int]): Mapping of agent addresses to team numbers.
-
-    Returns:
-        Dict[str, Dict[str, int]]: Mapping of team colors to a dictionary of
-            agent names to their respective counts.
-    """
-    fight_count = {
-        'squad': {}
-    }
-
+    # Assign instance IDs to agents
     for agent in agents:
-        team = team_changes[agent.address] if agent.address in team_changes else None
-        agent_team = team_colors[team] if team in team_colors else "Unk"
-        if agent_team not in fight_count:
-            fight_count[agent_team] = {}
-            
-        if agent.is_elite == 4294967295:
+        if agent.is_elite != 4294967295 and not agent.instid:
+            instid = instance_ids.get(agent.address)
+            if instid:
+                agent.instid = instid
+
+def summarize_non_squad_players(agents):
+    # Dictionary to store team -> profession -> count
+    non_squad_summary = defaultdict(Counter)
+    squad_count = 0
+
+    # Single pass over agents
+    for agent in agents:
+        # Skip invalid agents
+        if agent.is_elite == 4294967295 or agent.instid is None or agent.team is None:
             continue
+
+        # Check if agent is in squad (based on ":" in name)
         if ":" in agent.name:
-            name, account, sub = agent.name.split('\x00')
-            if sub not in fight_count['squad']:
-                fight_count['squad'][sub] = {}
-            fight_count['squad'][sub][name] = account
-
-        elif team:
-            fight_count[agent_team][prof_abbrv[agent.name]] = fight_count[agent_team].get(prof_abbrv[agent.name], 0) +1
-
-    return fight_count
-
-def print_fight_count(fight_count: Dict[str, Dict[str, int]]) -> None:
-    """
-    Print a summary of the fight count to the console.
-
-    Args:
-        fight_count (Dict[str, Dict[str, int]]): Mapping of team colors to a dictionary of agent names to their respective counts.
-
-    Returns:
-        None
-    """
-    #Report non-squad players by team color, descending order of profession count
-    for teamColor in fight_count:
-        if teamColor in ['squad', 'Unk']:
+            squad_count += 1
             continue
-        sorted_team = dict(sorted(fight_count[teamColor].items(), key=lambda item: item[1], reverse=True))
-        team_count = sum(fight_count[teamColor].values())
-        prof_counts = " | ".join(f"{key} : {value}" for key, value in sorted_team.items())
-        print(teamColor, team_count)
-        print(prof_counts)
-        print(f"-----=====End of {teamColor}=====-----\n")
 
-def send_to_discord(webhook_url: str, file_path: str, fight_count: Dict[str, Dict[str, int]]) -> None:
+        # Count non-squad agent by team and profession (name)
+        non_squad_summary[agent.team][agent.name] += 1
+
+    # Generate report
+    if not non_squad_summary:
+        print("No non-squad players found.")
+        return squad_count, {}
+
+    for team in sorted(non_squad_summary.keys()):
+        team_report = f"Team {team}:\n"
+        for prof, count in sorted(non_squad_summary[team].items()):
+            team_report += f"  {prof}: {count} |"
+        print(team_report)
+
+    return squad_count, non_squad_summary
+
+def send_to_discord(webhook_url: str, file_path: str, summary) -> None:
     """
     Send the analysis to a Discord webhook as an embed.
 
@@ -172,7 +161,7 @@ def send_to_discord(webhook_url: str, file_path: str, fight_count: Dict[str, Dic
     Returns:
         None
     """
-    if not fight_count:
+    if not summary:
         message = f"No valid data to analyze in {os.path.basename(file_path)}"
         payload = {"content": message}
     else:
@@ -182,26 +171,16 @@ def send_to_discord(webhook_url: str, file_path: str, fight_count: Dict[str, Dic
             "color": 0x00FF00,  # Green color
             "fields": []
         }
-        # Report non-squad players by team color, descending order of profession count
-        for teamColor in fight_count:
-            if teamColor in ['squad', 'Unk']:
-                continue
-            sorted_team = dict(sorted(fight_count[teamColor].items(), key=lambda item: item[1], reverse=True))
-            team_count = sum(fight_count[teamColor].values())
-            prof_counts = " | ".join(f"{key} : {value}" for key, value in sorted_team.items())
-            # Create field for team player count
+        # Create field for team report
+        for team in sorted(summary.keys()):
+            team_report = f"|"
+            for prof, count in sorted(summary[team].items()):
+                team_report += f" {prof}: {count} |"
             embed["fields"].append({
-                "name": f"Team {teamColor}",
-                "value": f"{team_count} players",
+                "name": f"Team {team}:",
+                "value": f"{team_report}",
                 "inline": False
             })
-            # Add profession breakdown
-            embed["fields"].append({
-                "name": "Professions",
-                "value": f"{prof_counts}\n",
-                "inline": True
-            })
-
         payload = {"embeds": [embed]}
 
     try:
@@ -212,7 +191,6 @@ def send_to_discord(webhook_url: str, file_path: str, fight_count: Dict[str, Dic
             print(f"Failed to send to Discord: {response.status_code} - {response.text}")
     except Exception as e:
         print(f"Error sending to Discord: {e}")
-
 
 
 if __name__ == "__main__":
