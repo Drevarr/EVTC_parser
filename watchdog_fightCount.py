@@ -1,4 +1,5 @@
 import parser
+import gw2_data
 import configparser
 import datetime
 import os
@@ -14,32 +15,6 @@ from urllib.parse import urlparse
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
-
-prof_abbrv = {
-    "Guardian":"Gn", "Dragonhunter":"Dh", "Firebrand":"Fb", "Willbender":"Wb",
-    "Warrior":"War", "Berserker":"Brs", "Spellbreaker":"Spb", "Bladesworn":"Bds",
-    "Engineer":"Eng", "Scrapper":"Scr", "Holosmith":"Hol", "Mechanist":"Mec",
-    "Ranger":"Rgr", "Druid":"Dru", "Soulbeast":"Slb", "Untamed":"Unt",
-    "Thief":"Thf", "Daredevil":"Dar", "Deadeye":"Ded", "Specter":"Spe",
-    "Elementalist":"Ele", "Tempest":"Tmp", "Weaver":"Wea", "Catalyst":"Cat",
-    "Mesmer":"Mes", "Chronomancer":"Chr", "Mirage":"Mir", "Virtuoso":"Vir",
-    "Necromancer":"Nec", "Reaper":"Rea", "Scourge":"Scg", "Harbinger":"Har",
-    "Revenant":"Rev", "Herald":"Her", "Renegade":"Ren", "Vindicator":"Vin",    
-}
-
-team_colors = {
-    0: "Unk",
-    705: "Red",
-    706: "Red",
-    882: "Red",
-    2520: "Red",
-    2739: "Green",
-    2741: "Green",
-    2752: "Green",
-    2763: "Green",
-    432: "Blue",
-    1277: "Blue",
-}
 
 class MyHandler(FileSystemEventHandler):
     def on_created(self, event):
@@ -98,8 +73,8 @@ def set_team_changes(agents, events):
     for agent in agents:
         if agent.is_elite != 4294967295 and not agent.team:
             assigned_team = team_assignments.get(agent.address)
-            if assigned_team in team_colors:
-                agent.team = team_colors[assigned_team]
+            if assigned_team in gw2_data.team_ids:
+                agent.team = gw2_data.team_ids[assigned_team]
 
 def set_agent_instance_id(agents, events):
     # Preprocess events to map src_agent to the first src_instid
@@ -180,7 +155,7 @@ def send_to_discord(webhook_url: str, file_path: str, summary, squad_count) -> N
             team_count = sum(summary[team].values())
             sorted_team = dict(sorted(summary[team].items(), key=lambda item: item[1], reverse=True))
             for prof in sorted_team:
-                team_report += f" {prof}: {sorted_team[prof]} |"
+                team_report += f" {gw2_data.prof_abbrv[prof]}: {sorted_team[prof]} |"
             embed["fields"].append({
                 "name": f"Team {team}: {team_count}",
                 "value": f"{team_report}",
