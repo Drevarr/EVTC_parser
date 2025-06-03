@@ -121,7 +121,7 @@ def summarize_non_squad_players(agents):
         team_report = f"Team {team}: {team_count}\n"
         sorted_team = dict(sorted(non_squad_summary[team].items(), key=lambda item: item[1], reverse=True))
         for prof in sorted_team:
-            team_report += f"  {prof}: {sorted_team[prof]} |"
+            team_report += f" {gw2_data.prof_abbrv[prof]}: {sorted_team[prof]} |"
         print(team_report)
 
     return squad_count, non_squad_summary
