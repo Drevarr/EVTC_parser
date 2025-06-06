@@ -15,6 +15,7 @@ from urllib.parse import urlparse
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
+#EXE Icon attribution: https://www.flaticon.com/authors/abdul-aziz
 
 class MyHandler(FileSystemEventHandler):
     def on_created(self, event):
@@ -96,6 +97,9 @@ def summarize_non_squad_players(agents):
     # Dictionary to store team -> profession -> count
     non_squad_summary = defaultdict(Counter)
     squad_count = 0
+    squad_id = []
+    other_id = []
+    squad_color = None
 
     # Single pass over agents
     for agent in agents:
@@ -104,12 +108,19 @@ def summarize_non_squad_players(agents):
             continue
 
         # Check if agent is in squad (based on ":" in name)
-        if ":" in agent.name:
-            squad_count += 1
-            continue
+        elif ":" in agent.name:
+            if agent.instid not in squad_id:
+                squad_id.append(agent.instid)
+                squad_count += 1
+            if not squad_color: 
+                squad_color = agent.team
 
-        # Count non-squad agent by team and profession (name)
-        non_squad_summary[agent.team][agent.name] += 1
+        else:
+            # Count non-squad agent by team and profession (name)
+            if agent.instid not in squad_id:
+                other_id.append(agent.instid)
+                non_squad_summary[agent.team][agent.name] += 1
+
 
     # Generate report
     if not non_squad_summary:
