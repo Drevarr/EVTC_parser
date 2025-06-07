@@ -49,14 +49,14 @@ class MyHandler(FileSystemEventHandler):
             
         set_team_changes(agents, events)
         set_agent_instance_id(agents, events)
-        squad_count, team_report = summarize_non_squad_players(agents)
+        squad_count, team_report, squad_comp = summarize_non_squad_players(agents)
         print(f"Squad players: {squad_count}")
 
         end_time = datetime.datetime.now()
         print(f"File: {log_file} processed, {len(agents)} agents, {len(skills)} skills, {len(events)} events")
         print(f"Processing Time:  {end_time-start_time}")
         if WEBHOOK_URL:
-            send_to_discord(WEBHOOK_URL, log_file, team_report, squad_count)
+            send_to_discord(WEBHOOK_URL, log_file, team_report, squad_count, squad_comp)
 
 def load_config(config_file='config.ini'):
     config = configparser.ConfigParser()
@@ -96,6 +96,7 @@ def set_agent_instance_id(agents, events):
 def summarize_non_squad_players(agents):
     # Dictionary to store team -> profession -> count
     non_squad_summary = defaultdict(Counter)
+    squad_comp = defaultdict(Counter)
     squad_count = 0
     squad_id = []
     other_id = []
@@ -112,6 +113,8 @@ def summarize_non_squad_players(agents):
             if agent.instid not in squad_id:
                 squad_id.append(agent.instid)
                 squad_count += 1
+                agent_prof = gw2_data.elites[agent.is_elite] if agent.is_elite in gw2_data.elites else gw2_data.profs[agent.profession]
+                squad_comp["Squad"][agent_prof] += 1
             if not squad_color: 
                 squad_color = agent.team
 
@@ -135,9 +138,10 @@ def summarize_non_squad_players(agents):
             team_report += f" {gw2_data.prof_abbrv[prof]}: {sorted_team[prof]} |"
         print(team_report)
 
-    return squad_count, non_squad_summary
 
-def send_to_discord(webhook_url: str, file_path: str, summary, squad_count) -> None:
+    return squad_count, non_squad_summary, squad_comp
+
+def send_to_discord(webhook_url: str, file_path: str, summary, squad_count, squad_comp) -> None:
     """
     Send the analysis to a Discord webhook as an embed.
 
@@ -175,6 +179,14 @@ def send_to_discord(webhook_url: str, file_path: str, summary, squad_count) -> N
         embed["fields"].append({
             "name": f"Squad Count: ",
             "value": f"{squad_count} squad members",
+            "inline": False
+        })
+        squad_report = f"|"
+        for prof in squad_comp["Squad"]:
+            squad_report += f" {gw2_data.prof_abbrv[prof]}: {squad_comp['Squad'][prof]} |"
+        embed["fields"].append({
+            "name": f"Squad Composition: ",
+            "value": f"{squad_report}",
             "inline": False
         })
         payload = {"embeds": [embed]}
