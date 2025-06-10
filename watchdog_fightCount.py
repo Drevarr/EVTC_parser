@@ -19,44 +19,27 @@ from watchdog.events import FileSystemEventHandler
 
 class MyHandler(FileSystemEventHandler):
     def on_created(self, event):
-        """Handle creation of a new log file."""
-        print(f"Processing newly created file: {event.src_path}")
-        time.sleep(LOG_DELAY)
-        start_time = datetime.datetime.now()
-        log_file = event.src_path
-        _, file_ext = os.path.splitext(log_file)
+        if not event.is_directory and event.src_path.endswith("evtc"):
+            """Handle creation of a new log file."""
+            print(f"New file created: {event.src_path}")
+            time.sleep(LOG_DELAY)
+            start_time = datetime.datetime.now()
+            log_file = event.src_path
+            _, file_ext = os.path.splitext(log_file)
 
-        if file_ext.lower() == '.zevtc':
-            try:
-                with tempfile.TemporaryDirectory() as temp_dir:
-                    with zipfile.ZipFile(log_file, 'r') as zip_ref:
-                        zip_ref.extractall(temp_dir)
-                        for extracted_file in os.listdir(temp_dir):
-                            extracted_path = os.path.join(temp_dir, extracted_file)
-                            header, agents, skills, events = parser.parse_evtc(extracted_path)
-            except zipfile.BadZipFile:
-                print(f"Failed to extract {log_file}, skipping.")
-                return
-            except Exception as e:
-                print(f"Error processing {log_file}: {e}")
-                return
-        elif file_ext.lower() == '.evtc':
-            try:
-                header, agents, skills, events = parser.parse_evtc(log_file)
-            except Exception as e:
-                print(f"Error processing {log_file}: {e}")
-                return
-            
-        set_team_changes(agents, events)
-        set_agent_instance_id(agents, events)
-        squad_count, team_report, squad_comp = summarize_non_squad_players(agents)
-        print(f"Squad players: {squad_count}")
+            self.wait_for_file_completion(log_file, file_ext, start_time)
 
-        end_time = datetime.datetime.now()
-        print(f"File: {log_file} processed, {len(agents)} agents, {len(skills)} skills, {len(events)} events")
-        print(f"Processing Time:  {end_time-start_time}")
-        if WEBHOOK_URL:
-            send_to_discord(WEBHOOK_URL, log_file, team_report, squad_count, squad_comp)
+    def wait_for_file_completion(self, file_path, file_ext, start_time):
+        last_size = -1
+        while True:
+            current_size = os.path.getsize(file_path)
+            if current_size == last_size:
+                print(f"File writing complete: {file_path}\n")
+                process_new_log(file_path, file_ext, start_time)
+                break
+            last_size = current_size
+            time.sleep(1)
+
 
 def load_config(config_file='config.ini'):
     config = configparser.ConfigParser()
@@ -201,6 +184,41 @@ def send_to_discord(webhook_url: str, file_path: str, summary, squad_count, squa
         print(f"Error sending to Discord: {e}")
 
 
+def process_new_log(log_file, file_ext, start_time):
+    if file_ext.lower() == '.zevtc':
+        try:
+            with tempfile.TemporaryDirectory() as temp_dir:
+
+                with zipfile.ZipFile(log_file, 'r') as zip_ref:
+                    zip_ref.extractall(temp_dir)
+                    for extracted_file in os.listdir(temp_dir):
+                        extracted_path = os.path.join(temp_dir, extracted_file)
+                        header, agents, skills, events = parser.parse_evtc(extracted_path)
+        except zipfile.BadZipFile:
+            print(f"Failed to extract {log_file}, skipping.")
+            return
+        except Exception as e:
+            print(f"Error processing {log_file}: {e}")
+            return
+    elif file_ext.lower() == '.evtc':
+        try:
+            header, agents, skills, events = parser.parse_evtc(log_file)
+        except Exception as e:
+            print(f"Error processing {log_file}: {e}")
+            return
+
+    set_team_changes(agents, events)
+    set_agent_instance_id(agents, events)
+    squad_count, team_report, squad_comp = summarize_non_squad_players(agents)
+    print(f"Squad players: {squad_count}")
+
+    end_time = datetime.datetime.now()
+    print(f"File: {log_file} processed, {len(agents)} agents, {len(skills)} skills, {len(events)} events")
+    print(f"Processing Time:  {end_time-start_time}")
+    if WEBHOOK_URL:
+        send_to_discord(WEBHOOK_URL, log_file, team_report, squad_count, squad_comp)
+
+
 if __name__ == "__main__":
     # Read the config file
     config_ini = configparser.ConfigParser()
@@ -214,7 +232,7 @@ if __name__ == "__main__":
     path_to_watch = ARCDPS_LOG_DIR  # Replace with the path to the directory you want to monitor
     event_handler = MyHandler()
     observer = Observer()
-    observer.schedule(event_handler, path_to_watch, recursive=True)
+    observer.schedule(event_handler, path_to_watch, recursive=False)
     observer.start()
     try:
         while True:
