@@ -141,7 +141,7 @@ def summarize_non_squad_players(agents):
     return squad_count, non_squad_summary, squad_comp, squad_color
 
 
-def send_to_discord(webhook_url: str, file_path: str, summary, squad_count, squad_comp, squad_color) -> None:
+def send_to_discord(webhook_url, file_path, summary, squad_count, squad_comp, squad_color) -> None:
     """
     Send the analysis to a Discord webhook as an embed.
 
@@ -154,30 +154,56 @@ def send_to_discord(webhook_url: str, file_path: str, summary, squad_count, squa
     Returns:
         None
     """
+    DISCORD_COLORS = {
+        "Red": (15548997, "#ED4245"),
+        "Green": (5763719, "#57F287"),
+        "Blue": (3447003, "#3498DB"),
+        "Black": (2303786, "#23272A"),
+        "DarkButNotBlack": (2895667, "#2C2F33"),
+        "NotQuiteBlack":	(2303786, "#23272A"),
+        "Blurple": (5793266, "#5865F2"),
+        "Greyple":	(10070709, "#99AAb5"),
+        "Fuchsia":	(15418782, "#EB459E")
+    }
+    DISCORD_EMOJI = {
+        "Red": ":red_square:",
+        "Green": ":green_square:",
+        "Blue": ":blue_square:",
+    }
     if not summary:
         message = f"No valid data to analyze in {os.path.basename(file_path)}"
         payload = {"content": message}
     else:
         # Create embed
         embed = {
-            "title": f"EVTC Log Analysis: {os.path.basename(file_path)}",
-            "color": 0x00FF00,  # Green color
-            "fields": []
+            "title": f"Player counts for fight: {os.path.basename(file_path)}",
+            "color": 793266,  # Blurple color
+            "fields": [],
+            "author": {
+                "icon_url": "https://wiki.guildwars2.com/images/c/cb/Commander_tag_%28purple%29.png", 
+                "name": "LogMon"
+            },
+            "footer": {
+                "text": "Drevarr's Fight Log Monitor"
+            },
+            "timestamp": datetime.datetime.now().isoformat(timespec='milliseconds')# + 'Z'
         }
+
         # Create field for team report
         for team in sorted(summary.keys()):
             team_report = f"|"
             team_count = sum(summary[team].values())
             sorted_team = dict(sorted(summary[team].items(), key=lambda item: item[1], reverse=True))
+            team_emoji = DISCORD_EMOJI[team]
             for prof in sorted_team:
                 team_report += f" {gw2_data.prof_abbrv[prof]}: {sorted_team[prof]} |"
             embed["fields"].append({
-                "name": f"Team {team if team != squad_color else "Allies"}: {team_count}",
+                "name": f"{team_emoji} Team {team if team != squad_color else "Allies"}: {team_count}",
                 "value": f"{team_report}",
                 "inline": False
             })
         embed["fields"].append({
-            "name": f"Squad Count: ",
+            "name": f":pink_heart: Squad Count: ",
             "value": f"{squad_count} squad members",
             "inline": False
         })
