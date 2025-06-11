@@ -138,10 +138,10 @@ def summarize_non_squad_players(agents):
         print(team_report)
 
 
-    return squad_count, non_squad_summary, squad_comp
+    return squad_count, non_squad_summary, squad_comp, squad_color
 
 
-def send_to_discord(webhook_url: str, file_path: str, summary, squad_count, squad_comp) -> None:
+def send_to_discord(webhook_url: str, file_path: str, summary, squad_count, squad_comp, squad_color) -> None:
     """
     Send the analysis to a Discord webhook as an embed.
 
@@ -172,7 +172,7 @@ def send_to_discord(webhook_url: str, file_path: str, summary, squad_count, squa
             for prof in sorted_team:
                 team_report += f" {gw2_data.prof_abbrv[prof]}: {sorted_team[prof]} |"
             embed["fields"].append({
-                "name": f"Team {team}: {team_count}",
+                "name": f"Team {team if team != squad_color else "Allies"}: {team_count}",
                 "value": f"{team_report}",
                 "inline": False
             })
@@ -263,7 +263,7 @@ def process_new_log(log_file, file_ext, start_time):
     set_agent_instance_id(agents, events)
     
     print(f"Summarizing non-squad players")
-    squad_count, team_report, squad_comp = summarize_non_squad_players(agents)
+    squad_count, team_report, squad_comp, squad_color = summarize_non_squad_players(agents)
     print(f"Squad players: {squad_count}")
     
     end_time = datetime.datetime.now()
@@ -272,7 +272,7 @@ def process_new_log(log_file, file_ext, start_time):
     
     if WEBHOOK_URL:
         print(f"Sending to Discord webhook: {WEBHOOK_URL}")
-        send_to_discord(WEBHOOK_URL, log_file, team_report, squad_count, squad_comp)
+        send_to_discord(WEBHOOK_URL, log_file, team_report, squad_count, squad_comp, squad_color)
     else:
         print("No WEBHOOK_URL configured, skipping Discord send")
 
