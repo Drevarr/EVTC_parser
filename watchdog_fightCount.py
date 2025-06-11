@@ -186,7 +186,7 @@ def send_to_discord(webhook_url, file_path, summary, squad_count, squad_comp, sq
             "footer": {
                 "text": "Drevarr's Fight Log Monitor"
             },
-            "timestamp": datetime.datetime.now().isoformat(timespec='milliseconds')# + 'Z'
+            "timestamp": datetime.datetime.utcnow().isoformat()
         }
 
         # Create field for team report
