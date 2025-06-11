@@ -317,6 +317,7 @@ if __name__ == "__main__":
     WEBHOOK_URL = config_ini['Settings']['WEBHOOK_URL']
 
     path_to_watch = ARCDPS_LOG_DIR
+    print(f"Watching for new ArcDps logs in {path_to_watch}")
     event_handler = MyHandler()
     observer = PollingObserver()  # Use PollingObserver for reliability
     observer.schedule(event_handler, path_to_watch, recursive=False)
