@@ -98,7 +98,7 @@ def summarize_non_squad_players(agents):
     squad_comp = defaultdict(Counter)
     squad_count = 0
     squad_id = []
-    other_id = []
+    duplicate_check = []
     squad_color = None
 
     # Single pass over agents
@@ -117,11 +117,10 @@ def summarize_non_squad_players(agents):
             if not squad_color: 
                 squad_color = agent.team
 
-        else:
+        elif agent.instid not in duplicate_check:
             # Count non-squad agent by team and profession (name)
-            if agent.instid not in squad_id:
-                other_id.append(agent.instid)
-                non_squad_summary[agent.team][agent.name] += 1
+            duplicate_check.append(agent.instid)
+            non_squad_summary[agent.team][agent.name] += 1
 
 
     # Generate report
@@ -186,7 +185,7 @@ def send_to_discord(webhook_url, file_path, summary, squad_count, squad_comp, sq
             "footer": {
                 "text": "Drevarr's Fight Log Monitor"
             },
-            "timestamp": datetime.datetime.utcnow().isoformat()
+            "timestamp": datetime.datetime.now(datetime.UTC).isoformat()
         }
 
         # Create field for team report
