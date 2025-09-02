@@ -1,4 +1,5 @@
 profs = {
+    0: "Unknown",
     1: "Guardian",
     2: "Warrior",
     3: "Engineer",
@@ -37,7 +38,16 @@ elites = {
     69: "Vindicator",
     70: "Mechanist",
     71: "Specter",
-    72: "Untamed"
+    72: "Untamed",
+    73: "Troubadour",
+    74: "Paragon",
+    75: "Amalgam",
+    76: "Ritualist",
+    77: "Antiquary",
+    78: "Galeshot",
+    79: "Conduit",
+    80: "Evoker",
+    81: "Luminary"
     }
 
 prof_abbrv = {
@@ -76,7 +86,16 @@ prof_abbrv = {
     "Revenant": "Rev",
     "Herald": "Her",
     "Renegade": "Ren",
-    "Vindicator": "Vin"
+    "Vindicator": "Vin",
+    "Troubadour": "Tbd",
+    "Paragon": "Par",
+    "Amalgam": "Amg",
+    "Ritualist": "Rtl",
+    "Antiquary": "Atq",
+    "Galeshot": "Gls",
+    "Conduit": "Cdt",
+    "Evoker": "Evo",
+    "Luminary": "Lum"    
     }
 
 prof_colors = {
@@ -98,38 +117,47 @@ team_ids = {
     }
 
 elite_profs = {
+    "Luminary":        "Guardian",
     "Dragonhunter":    "Guardian",
     "Firebrand":       "Guardian",
     "Willbender":      "Guardian",
     "Guardian":        "Guardian",
+    "Paragon":         "Warrior",
     "Berserker":       "Warrior",
     "Spellbreaker":    "Warrior",
     "Bladesworn":      "Warrior",
     "Warrior":         "Warrior",
+    "Amalgam":         "Engineer",
     "Scrapper":        "Engineer",
     "Holosmith":       "Engineer",
     "Mechanist":       "Engineer",
     "Engineer":        "Engineer",
+    "Galeshot":        "Ranger",
     "Druid":           "Ranger",
     "Soulbeast":       "Ranger",
     "Untamed":         "Ranger",
     "Ranger":          "Ranger",
+    "Antiquary":       "Thief",
     "Daredevil":       "Thief",
     "Deadeye":         "Thief",
     "Specter":         "Thief",
     "Thief":           "Thief",
+    "Evoker":          "Elementalist",
     "Tempest":         "Elementalist",
     "Weaver":          "Elementalist",
     "Catalyst":        "Elementalist",
     "Elementalist":    "Elementalist",
+    "Troubadour":      "Mesmer",
     "Chronomancer":    "Mesmer",
     "Mirage":          "Mesmer",
     "Virtuoso":        "Mesmer",
     "Mesmer":          "Mesmer",
+    "Ritualist":       "Necromancer",
     "Reaper":          "Necromancer",
     "Scourge":         "Necromancer",
     "Harbinger":       "Necromancer",
     "Necromancer":     "Necromancer",
+    "Conduit":         "Revenant",
     "Herald":          "Revenant",
     "Renegade":        "Revenant",
     "Vindicator":      "Revenant",
