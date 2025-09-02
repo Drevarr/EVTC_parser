@@ -1,5 +1,4 @@
 profs = {
-    0: "Unknown",
     1: "Guardian",
     2: "Warrior",
     3: "Engineer",
@@ -107,7 +106,8 @@ prof_colors = {
 	"Elementalist": "#ff3333",
 	"Mesmer":       "#cc33cc",
 	"Necromancer":  "#00cc66",
-	"Revenant":     "#993333"
+	"Revenant":     "#993333",
+    "Unknown":      "#ffffff"
     }
 
 team_ids = {

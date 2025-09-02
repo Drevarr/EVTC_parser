@@ -102,6 +102,7 @@ def parse_evtc(file_path: str) -> Tuple[EvtcHeader, List[EvtcAgent], List[EvtcSk
                     party = name[-1]
                 else:
                     party = 0
+
                 agents.append(EvtcAgent(
                     address=addr,
                     profession=prof,
