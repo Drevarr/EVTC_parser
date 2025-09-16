@@ -19,3 +19,6 @@ WEBHOOK_URL = https://discord.com/api/webhooks/yourwebhookdata/yourwebhookhere
 ```
 -  Launch Fight_Watchdog.exe
 -  Go get bags
+
+---
+![Alt](https://repobeats.axiom.co/api/embed/5710af08ec6a1dac58dd7f66f81a9a1ad2eeff25.svg "Repobeats analytics image")
