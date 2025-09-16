@@ -123,7 +123,10 @@ def summarize_non_squad_players(
                 squad_color = agent.team
         elif agent.instid not in duplicate_check:
             duplicate_check.add(agent.instid)
-            non_squad_summary[agent.team][agent.name] += 1
+            agent_prof = gw2_data.elites.get(
+                agent.is_elite, gw2_data.profs[agent.profession]
+            )
+            non_squad_summary[agent.team][agent_prof] += 1
 
     return squad_count, non_squad_summary, squad_comp, squad_color
 
