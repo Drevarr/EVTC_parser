@@ -1,6 +1,7 @@
 import struct
 import sys
 import traceback
+import gc
 from typing import List, Dict, NamedTuple, Tuple
 from collections import defaultdict
 from dataclasses import dataclass
@@ -63,6 +64,21 @@ class EvtcEvent:
     is_shields: int
     is_offcycle: int
     pad: int
+
+def free_evtc_data(header, agents, skills, events):
+    """
+    Explicitly delete EVTC objects and trigger garbage collection
+    to free memory once data has been processed.
+    """
+    del header
+    del agents[:]
+    del agents
+    del skills[:]
+    del skills
+    del events[:]
+    del events
+    gc.collect()
+    print("---=== Memory freed ===---")
 
 def parse_evtc(file_path: str) -> Tuple[EvtcHeader, List[EvtcAgent], List[EvtcSkill], List[EvtcEvent]]:
     """

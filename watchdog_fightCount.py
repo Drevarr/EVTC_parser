@@ -290,6 +290,9 @@ def process_new_log(log_file: str, file_ext: str, start_time: datetime.datetime)
                 print(f"  {team_name} Comp: {prof_count_line.rstrip(', ')}")
         print("========================\n")
 
+    parser.free_evtc_data(header, agents, skills, events)
+
+
 # --- Main entry ---
 if __name__ == "__main__":
     config_ini = configparser.ConfigParser()
