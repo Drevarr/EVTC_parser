@@ -2,6 +2,8 @@ import configparser
 import datetime
 import logging
 import os
+import queue
+import threading
 import tempfile
 import time
 import zipfile
@@ -25,6 +27,9 @@ logger = logging.getLogger(__name__)
 
 
 MAX_WAIT_TIME = 30  # seconds to wait for file completion
+LOG_QUEUE = queue.Queue()
+PROCESSED = set()   # deduplication guard
+
 
 # --- File event handler ---
 class MyHandler(FileSystemEventHandler):
@@ -36,30 +41,56 @@ class MyHandler(FileSystemEventHandler):
 
     def handle_file_event(self, event):
         if not event.is_directory and event.src_path.endswith((".evtc", ".zevtc")):
-            logger.info("File event detected: %s (%s)", event.src_path, event.event_type)
-            time.sleep(LOG_DELAY)
-            start_time = datetime.datetime.now()
-            log_file = event.src_path
-            _, file_ext = os.path.splitext(log_file)
-            self.wait_for_file_completion(log_file, file_ext, start_time)
+            if event.src_path not in PROCESSED:  # prevent duplicates
+                LOG_QUEUE.put(event.src_path)
+                PROCESSED.add(event.src_path)                
+                logger.info(
+                    "Queued file for processing: %s (queue size: %d)",
+                    event.src_path,
+                    LOG_QUEUE.qsize(),
+                )
 
-    def wait_for_file_completion(self, file_path: str, file_ext: str, start_time: datetime.datetime) -> None:
-        last_size = -1
-        start_wait = time.time()
 
-        while time.time() - start_wait < MAX_WAIT_TIME:
-            try:
-                current_size = os.path.getsize(file_path)
-                if current_size == last_size and current_size > 0:
-                    logger.info("File writing complete: %s", file_path)
-                    process_new_log(file_path, file_ext, start_time)
-                    return
-                last_size = current_size
-            except (IOError, PermissionError):
-                logger.debug("File %s not yet accessible, waiting...", file_path)
-            time.sleep(1)
+# --- Worker thread ---
+def log_worker():
+    while True:
+        log_file = LOG_QUEUE.get()  # blocking wait
+        if log_file is None:  # shutdown signal
+            break
 
-        logger.warning("Timeout waiting for %s to complete.", file_path)
+        start_time = datetime.datetime.now()
+        _, file_ext = os.path.splitext(log_file)
+
+        try:
+            wait_for_file_completion(log_file, file_ext, start_time)
+        except Exception as e:
+            logger.exception("Error handling %s: %s", log_file, e)
+
+        LOG_QUEUE.task_done()
+        logger.info(
+            "Finished processing %s (queue size: %d)",
+            log_file,
+            LOG_QUEUE.qsize(),
+        )
+
+
+def wait_for_file_completion(file_path: str, file_ext: str, start_time: datetime.datetime) -> None:
+    last_size = -1
+    start_wait = time.time()
+
+    while time.time() - start_wait < MAX_WAIT_TIME:
+        try:
+            current_size = os.path.getsize(file_path)
+            if current_size == last_size and current_size > 0:
+                logger.info("File writing complete: %s", file_path)
+                process_new_log(file_path, file_ext, start_time)
+                return
+            last_size = current_size
+        except (IOError, PermissionError):
+            logger.debug("File %s not yet accessible, waiting...", file_path)
+        time.sleep(1)
+
+    logger.warning("Timeout waiting for %s to complete.", file_path)
 
 # --- Agent utilities ---
 def set_team_changes(agents: List, events: List) -> None:
@@ -307,6 +338,10 @@ if __name__ == "__main__":
     LOG_DELAY = int(config_ini["Settings"].get("LOG_DELAY", 5))
     WEBHOOK_URL = config_ini["Settings"]["WEBHOOK_URL"]
 
+    # Start worker thread
+    worker = threading.Thread(target=log_worker, daemon=True)
+    worker.start()
+
     logger.info("Watching for new ArcDps logs in %s", ARCDPS_LOG_DIR)
     event_handler = MyHandler()
     observer = PollingObserver()  # PollingObserver is more reliable cross-platform
@@ -317,4 +352,7 @@ if __name__ == "__main__":
             time.sleep(1)
     except KeyboardInterrupt:
         observer.stop()
+        LOG_QUEUE.put(None)  # signal worker to stop
+        worker.join()
+
     observer.join()
