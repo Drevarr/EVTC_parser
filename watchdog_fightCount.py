@@ -26,7 +26,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-MAX_WAIT_TIME = 30  # seconds to wait for file completion
+MAX_WAIT_TIME = 45  # seconds to wait for file completion
 LOG_QUEUE = queue.Queue()
 PROCESSED = set()   # deduplication guard
 
@@ -90,7 +90,7 @@ def wait_for_file_completion(file_path: str, file_ext: str, start_time: datetime
             logger.debug("File %s not yet accessible, waiting...", file_path)
         time.sleep(1)
 
-    logger.warning("Timeout waiting for %s to complete.", file_path)
+    logger.warning("Timeout waiting for %s to become available.", file_path)
 
 # --- Agent utilities ---
 def set_team_changes(agents: List, events: List) -> None:
