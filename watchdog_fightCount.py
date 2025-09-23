@@ -182,7 +182,8 @@ def send_to_discord(
             "fields": [],
             "author": {
                 "icon_url": "https://wiki.guildwars2.com/images/c/cb/Commander_tag_%28purple%29.png",
-                "name": "LogMon",
+                "name": "Fight Watchdog",
+                "url": "https://github.com/Drevarr/EVTC_parser",
             },
             "footer": {"text": "Drevarr's Fight Log Monitor"},
             "timestamp": datetime.datetime.now(datetime.UTC).isoformat(),
