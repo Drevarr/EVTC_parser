@@ -33,7 +33,7 @@ PROCESSED = set()   # deduplication guard
 
 # --- File event handler ---
 class MyHandler(FileSystemEventHandler):
-    def on_created(self, event):
+    def on_created(self, event): 
         self.handle_file_event(event)
 
     def on_modified(self, event):
@@ -74,23 +74,69 @@ def log_worker():
         )
 
 
-def wait_for_file_completion(file_path: str, file_ext: str, start_time: datetime.datetime) -> None:
-    last_size = -1
-    start_wait = time.time()
+def wait_for_file_completion(file_path: str, file_ext: str, start_time: float) -> None:
+    """
+    Waits until a newly created log file stops changing before processing it.
+    """
 
-    while time.time() - start_wait < MAX_WAIT_TIME:
-        try:
-            current_size = os.path.getsize(file_path)
-            if current_size == last_size and current_size > 0:
-                logger.info("File writing complete: %s", file_path)
-                process_new_log(file_path, file_ext, start_time)
-                return
-            last_size = current_size
-        except (IOError, PermissionError):
-            logger.debug("File %s not yet accessible, waiting...", file_path)
+    # Dynamic scaling based on file size
+    def estimate_wait_time(size_bytes: int) -> int:
+        size_factor = 1 + (size_bytes // 5_000_000)
+        return size_factor * 60 + 60  # seconds
+
+    # Initial parameters
+    check_interval = 0.5  # check every 500 ms
+    last_modified = 0
+    stable_count = 0
+    max_retries = 200  
+
+    # Track dynamic wait time extension for large files
+    base_wait_time = 100  # seconds
+    last_size = 0
+
+    logger.info("Monitoring %s for completion...", file_path)
+
+    # Check for existence first
+    while not os.path.exists(file_path):
         time.sleep(1)
+        logger.debug("Waiting for file to appear: %s", file_path)
 
-    logger.warning("Timeout waiting for %s to become available.", file_path)
+    # Determine an adaptive maximum wait time
+    try:
+        size_now = os.path.getsize(file_path)
+        max_wait_time = max(base_wait_time, estimate_wait_time(size_now))
+    except Exception:
+        max_wait_time = base_wait_time
+
+    start_wait = time.time()
+    while time.time() - start_wait < max_wait_time:
+        try:
+            if not os.path.exists(file_path):
+                logger.warning("File disappeared before completion: %s", file_path)
+                return
+
+            current_mod = os.path.getmtime(file_path)
+            current_size = os.path.getsize(file_path)
+
+            # Check if file has stabilized
+            if current_mod == last_modified and current_size == last_size and current_size > 0:
+                stable_count += 1
+                if stable_count >= 4:  #43 consecutive stable checks = stable for 2.0s
+                    logger.info("File appears complete: %s", file_path)
+                    process_new_log(file_path, file_ext, start_time)
+                    return
+            else:
+                stable_count = 0
+                last_modified = current_mod
+                last_size = current_size
+
+        except (OSError, PermissionError):
+            logger.debug("File %s not yet accessible, waiting...", file_path)
+
+        time.sleep(check_interval)
+
+    logger.warning("Timeout waiting for %s to become stable.", file_path)
+
 
 # --- Agent utilities ---
 def set_team_changes(agents: List, events: List) -> None:
