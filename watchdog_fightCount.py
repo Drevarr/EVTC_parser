@@ -392,7 +392,7 @@ if __name__ == "__main__":
     logger.info("Watching for new ArcDps logs in %s", ARCDPS_LOG_DIR)
     event_handler = MyHandler()
     observer = PollingObserver()  # PollingObserver is more reliable cross-platform
-    observer.schedule(event_handler, ARCDPS_LOG_DIR, recursive=False)
+    observer.schedule(event_handler, ARCDPS_LOG_DIR, recursive=True)
     observer.start()
     try:
         while True:
