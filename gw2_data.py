@@ -111,9 +111,9 @@ prof_colors = {
     }
 
 team_ids = {
-        697:  "Red", 705:  "Red", 706:  "Red", 882:  "Red", 2520: "Red",
-        39:   "Green", 2739: "Green", 2741: "Green", 2752: "Green", 2763: "Green",
-        432:  "Blue", 1277: "Blue", 1989: "Blue"
+        697:  "Red", 705:  "Red", 706:  "Red", 707:  "Red", 882:  "Red", 885:  "Red", 2520: "Red",
+        39:   "Green", 2739: "Green", 2741: "Green", 2752: "Green", 2763: "Green", 2767: "Green",
+        432:  "Blue", 433:  "Blue", 1277: "Blue", 1989: "Blue"
     }
 
 elite_profs = {
