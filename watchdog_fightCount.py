@@ -34,19 +34,26 @@ PROCESSED = set()   # deduplication guard
 # --- File event handler ---
 class MyHandler(FileSystemEventHandler):
     def on_created(self, event): 
-        self.handle_file_event(event)
+        if not event.is_directory:        
+            self.handle_file_event(event.src_path)
+
+    def on_moved(self, event):
+        if not event.is_directory:
+            # event.dest_path is the new location/name (.evtc)
+            self.handle_file_event(event.dest_path)
 
     def on_modified(self, event):
-        self.handle_file_event(event)
+        if not event.is_directory:       
+            self.handle_file_event(event.src_path)
 
-    def handle_file_event(self, event):
-        if not event.is_directory and event.src_path.endswith((".evtc", ".zevtc")):
-            if event.src_path not in PROCESSED:  # prevent duplicates
-                LOG_QUEUE.put(event.src_path)
-                PROCESSED.add(event.src_path)                
+    def handle_file_event(self, file_path):
+        if file_path.endswith((".evtc", ".zevtc")):
+            if file_path not in PROCESSED:  # prevent duplicates
+                LOG_QUEUE.put(file_path)
+                PROCESSED.add(file_path)                
                 logger.info(
                     "Queued file for processing: %s (queue size: %d)",
-                    event.src_path,
+                    file_path,
                     LOG_QUEUE.qsize(),
                 )
 
