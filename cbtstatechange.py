@@ -1,205 +1,90 @@
-from enum import Enum
+from enum import IntEnum
 
-class CbtStateChange(Enum):
+class CbtStateChange(IntEnum):
     """State change events ported from arcdps enum cbtstatechange"""
-
-    NONE = 0
-    """Not used - not this kind of event"""
-
-    ENTERCOMBAT = 1
-    """Agent entered combat."""
-
-    EXITCOMBAT = 2
-    """Agent left combat."""
-
-    CHANGEUP = 3
-    """Agent is alive at time of event."""
-
-    CHANGEDEAD = 4
-    """Agent is dead at time of event."""
-
-    CHANGEDOWN = 5
-    """Agent is down at time of event."""
-
+    COMBAT = 0
+    ENTER_COMBAT = 1
+    EXIT_COMBAT = 2
+    CHANGE_UP = 3
+    CHANGE_DEAD = 4
+    CHANGE_DOWN = 5
     SPAWN = 6
-    """Agent entered tracking."""
-
     DESPAWN = 7
-    """Agent left tracking."""
-
-    HEALTHPCTUPDATE = 8
-    """Agent health percentage changed."""
-
-    SQCOMBATSTART = 9
-    """Squad combat start, first player enters combat."""
-
-    SQCOMBATEND = 10
-    """Squad combat stop, last player left combat."""
-
-    WEAPSWAP = 11
-    """Agent weapon set changed."""
-
-    MAXHEALTHUPDATE = 12
-    """Agent maximum health changed."""
-
-    POINTOFVIEW = 13
-    """'Recording' player."""
-
+    HEALTH_PCT_UPDATE = 8
+    SQ_COMBAT_START = 9
+    SQ_COMBAT_END = 10
+    WEAPON_SWAP = 11
+    MAX_HEALTH_UPDATE = 12
+    POINT_OF_VIEW = 13
     LANGUAGE = 14
-    """Text language id."""
-
-    GWBUILD = 15
-    """Game build."""
-
-    SHARDID = 16
-    """Server shard id."""
-
+    GW_BUILD = 15
+    SHARD_ID = 16
     REWARD = 17
-    """Wiggly box reward."""
-
-    BUFFINITIAL = 18
-    """Buff already existing at event time."""
-
+    BUFF_INITIAL = 18
     POSITION = 19
-    """Agent position changed."""
-
     VELOCITY = 20
-    """Agent velocity changed."""
-
     FACING = 21
-    """Agent facing direction changed."""
-
-    TEAMCHANGE = 22
-    """Agent team id changed."""
-
-    ATTACKTARGET = 23
-    """Attacktarget to gadget association."""
-
+    TEAM_CHANGE = 22
+    ATTACK_TARGET = 23
     TARGETABLE = 24
-    """Agent targetable state changed."""
-
-    MAPID = 25
-    """Map id."""
-
-    REPLINFO = 26
-    """Internal use only."""
-
-    STACKACTIVE = 27
-    """Buff instance is now active."""
-
-    STACKRESET = 28
-    """Buff instance duration changed / reset."""
-
+    MAP_ID = 25
+    REPL_INFO = 26
+    BUFF_ACTIVE = 27
+    BUFF_DEACTIVE = 28
     GUILD = 29
-    """Agent is a member of a guild."""
-
-    BUFFINFO = 30
-    """Buff information."""
-
-    BUFFFORMULA = 31
-    """Buff formula information."""
-
-    SKILLINFO = 32
-    """Skill information."""
-
-    SKILLTIMING = 33
-    """Skill timing information."""
-
-    BREAKBARSTATE = 34
-    """Agent breakbar state changed."""
-
-    BREAKBARPERCENT = 35
-    """Agent breakbar percentage changed."""
-
+    BUFF_INFO = 30
+    BUFF_FORMULA = 31
+    SKILL_INFO = 32
+    SKILL_TIMING = 33
+    DEFIANCE_BAR_STATE = 34
+    DEFIANCE_BAR_PERCENT = 35
     INTEGRITY = 36
-    """Error/integrity message."""
-
     MARKER = 37
-    """Marker on agent."""
-
-    BARRIERPCTUPDATE = 38
-    """Agent barrier percentage changed."""
-
-    STATRESET = 39
-    """arcdps stats reset."""
-
+    BARRIER_PCT_UPDATE = 38
+    STAT_RESET_DEFUNC = 39
     EXTENSION = 40
-    """Extension use only."""
-
-    APIDELAYED = 41
-    """Non-realtime-safe cbtevent posted later."""
-
-    INSTANCESTART = 42
-    """Map instance start."""
-
-    RATEHEALTH = 43
-    """Tick health / tickrate."""
-
-    LAST90BEFOREDOWN = 44
-    """Retired, not used since 240529+."""
-
-    EFFECT = 45
-    """Retired, not used since 230716+."""
-
-    IDTOGUID = 46
-    """Content id to guid association."""
-
-    LOGNPCUPDATE = 47
-    """Log boss agent changed."""
-
-    IDLEEVENT = 48
-    """Internal use only."""
-
-    EXTENSIONCOMBAT = 49
-    """Extension use, cbtevent struct interpreted."""
-
-    FRACTALSCALE = 50
-    """Fractal scale (for fractals)."""
-
+    API_DELAYED_DEFUNC = 41
+    INSTANCE_START = 42
+    RATE_HEALTH = 43
+    LAST90_BEFORE_DOWN_DEFUNC = 44
+    EFFECT1_DEFUNC = 45
+    ID_TO_GUID = 46
+    LOG_NPC_UPDATE = 47
+    IDLE_EVENT = 48
+    EXTENSION_COMBAT = 49
+    FRACTAL_SCALE = 50
     EFFECT2_DEFUNC = 51
-    """Retired, not used since 250526+."""
-
     RULESET = 52
-    """Ruleset flags (pve, wvw, pvp)."""
-
-    SQUADMARKER = 53
-    """Squad ground markers."""
-
-    ARCBUILD = 54
-    """Arc build info."""
-
+    SQUAD_MARKER = 53
+    ARC_BUILD = 54
     GLIDER = 55
-    """Glider status change."""
-
-    STUNBREAK = 56
-    """Disable stopped early."""
-
-    MISSILECREATE = 57
-    """Missile created."""
-
-    MISSILELAUNCH = 58
-    """Missile launched."""
-
-    MISSILEREMOVE = 59
-    """Missile removed."""
-
-    EFFECTGROUNDCREATE = 60
-    """Effect played on ground."""
-
-    EFFECTGROUNDREMOVE = 61
-    """Effect stopped on ground."""
-
-    EFFECTAGENTCREATE = 62
-    """Effect played around agent."""
-
-    EFFECTAGENTREMOVE = 63
-    """Effect stopped around agent."""
-
-    IIDCHANGE = 64
-    """IID changed (players only, after spawn)."""
-
-    MAPCHANGE = 65
-    """Map changed."""
-
-    UNKNOWN = 66
-    """Unknown/unsupported type (newer than this list)."""
+    STUN_BREAK = 56
+    MISSILE_CREATE = 57
+    MISSILE_LAUNCH = 58
+    MISSILE_REMOVE = 59
+    EFFECT_GROUND_CREATE = 60
+    EFFECT_GROUND_REMOVE = 61
+    EFFECT_AGENT_CREATE = 62
+    EFFECT_AGENT_REMOVE = 63
+    IID_CHANGE = 64
+    MAP_CHANGE = 65
+    EARLY_EXIT = 66
+    ANIMATION_START = 67
+    ANIMATION_STOP = 68
+    BUFF_APPLY = 69
+    BUFF_CHANGE = 70
+    BUFF_REMOVE_SINGLE = 71
+    BUFF_REMOVE_ALL = 72
+    TRANSFORMATION = 73
+    WVW_TEAMS = 74
+    WVW_OBJECTIVE_STATUS = 75
+    STEALTH_CHANGE = 76
+    GADGET_ANIMATION = 77
+    GADGET_NAME = 78
+    MISSILE_EFFECT = 79
+    GADGET_CAPTURE_OUTLINE_SHOW = 80
+    GADGET_CAPTURE_SPLIT_PERCENT = 81
+    GADGET_CAPTURE_OUTLINE_HIDE = 82
+    GADGET_CAPTURE_OUTLINE_POINT = 83
+    TICK = 84
+    UNKNOWN = 85
