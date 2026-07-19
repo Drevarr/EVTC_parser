@@ -8,6 +8,7 @@ from dataclasses import dataclass
 
 AGENT_STRUCT = '<QIIHHHHHH64s4x'  # Q: uint64, I: uint32, H: uint16, 64s: char[64]
 AGENT_SIZE = struct.calcsize(AGENT_STRUCT)
+SKILL_SIZE = 68
 
 EVENT_STRUCT = '<qQQiiIIHHHHBBBBBBBBBBBBI'
 EVENT_SIZE = struct.calcsize(EVENT_STRUCT)
@@ -95,8 +96,8 @@ def parse_evtc(file_path: str) -> Tuple[EvtcHeader, List[EvtcAgent], List[EvtcSk
             if magic[:4] != b'EVTC':
                 raise ValueError(f"Invalid EVTC file: magic number is {magic!r}, expected 'EVTC'")
             header = EvtcHeader(
-                magic=magic.decode('utf8'),
-                version=version.decode('utf8').rstrip('\x00'),
+                magic=magic.decode('utf-8', errors='replace'),
+                version=version.decode('utf-8', errors='replace').rstrip('\x00'),
                 instruction_set_id=instruction_set_id,
                 revision=revision
             )
@@ -113,9 +114,9 @@ def parse_evtc(file_path: str) -> Tuple[EvtcHeader, List[EvtcAgent], List[EvtcSk
                     raise EOFError("Unexpected EOF while reading agent data")
                 
                 addr, prof, is_elite, toughness, concentration, healing, hitbox_width, condition, hitbox_height, name = struct.unpack(AGENT_STRUCT, agent_data)
-                name = name.decode('utf-8').rstrip('\x00')
-                if "." in name:
-                    party = name[-1]
+                name = name.decode('utf-8', errors='replace').rstrip('\x00')
+                if "." in name and name[-1].isdigit():
+                    party = int(name[-1])
                 else:
                     party = 0
 
@@ -141,12 +142,12 @@ def parse_evtc(file_path: str) -> Tuple[EvtcHeader, List[EvtcAgent], List[EvtcSk
             
             skills = []
             for _ in range(skill_count):
-                skill_data = f.read(68)
-                if len(skill_data) < 68:
-                    raise EOFError("Unexpected EOF while reading skill data")
+                skill_data = f.read(SKILL_SIZE)
+                if len(skill_data) < SKILL_SIZE:
+                    raise EOFError(f"Unexpected EOF while reading skill data (expected {SKILL_SIZE} bytes)")
                 
                 skill_id, name = struct.unpack('<i64s', skill_data)
-                name = name.decode('utf-8').rstrip('\x00')
+                name = name.decode('utf-8', errors='replace').rstrip('\x00')
                 skills.append(EvtcSkill(skill_id=skill_id, name=name))
 
             events = []
