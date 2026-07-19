@@ -26,7 +26,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-MAX_WAIT_TIME = 45  # seconds to wait for file completion
+# MAX_WAIT_TIME is now handled by MAX_WAIT_TIME_HARD in config.ini
 LOG_QUEUE = queue.Queue()
 PROCESSED = set()   # deduplication guard
 
@@ -81,7 +81,7 @@ def log_worker():
         )
 
 
-def wait_for_file_completion(file_path: str, file_ext: str, start_time: float) -> None:
+def wait_for_file_completion(file_path: str, file_ext: str, start_time: float, max_wait_hard: int = 300) -> None:
     """
     Waits until a newly created log file stops changing before processing it.
     """
@@ -95,7 +95,6 @@ def wait_for_file_completion(file_path: str, file_ext: str, start_time: float) -
     check_interval = 0.5  # check every 500 ms
     last_modified = 0
     stable_count = 0
-    max_retries = 200  
 
     # Track dynamic wait time extension for large files
     base_wait_time = 100  # seconds
@@ -108,10 +107,22 @@ def wait_for_file_completion(file_path: str, file_ext: str, start_time: float) -
         time.sleep(1)
         logger.debug("Waiting for file to appear: %s", file_path)
 
+    # --- Header Validation (Fail Fast) ---
+    try:
+        with open(file_path, 'rb') as f:
+            header_bytes = f.read(4)
+            if not header_bytes.startswith(b"EVTC"):
+                logger.warning("File %s has invalid EVTC header. Skipping.", file_path)
+                return
+    except Exception as e:
+        logger.error("Could not read header of %s: %s", file_path, e)
+        return
+
     # Determine an adaptive maximum wait time
     try:
         size_now = os.path.getsize(file_path)
-        max_wait_time = max(base_wait_time, estimate_wait_time(size_now))
+        # Use the smaller of the estimated wait or the hard limit
+        max_wait_time = min(max_wait_hard, max(base_wait_time, estimate_wait_time(size_now)))
     except Exception:
         max_wait_time = base_wait_time
 
