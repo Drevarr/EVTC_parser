@@ -26,7 +26,6 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-# MAX_WAIT_TIME is now handled by MAX_WAIT_TIME_HARD in config.ini
 LOG_QUEUE = queue.Queue()
 PROCESSED = set()   # deduplication guard
 
@@ -81,7 +80,7 @@ def log_worker():
         )
 
 
-def wait_for_file_completion(file_path: str, file_ext: str, start_time: float, max_wait_hard: int = 300) -> None:
+def wait_for_file_completion(file_path: str, file_ext: str, start_time: float, max_wait_hard: int = 100) -> None:
     """
     Waits until a newly created log file stops changing before processing it.
     """
@@ -106,17 +105,6 @@ def wait_for_file_completion(file_path: str, file_ext: str, start_time: float, m
     while not os.path.exists(file_path):
         time.sleep(1)
         logger.debug("Waiting for file to appear: %s", file_path)
-
-    # --- Header Validation (Fail Fast) ---
-    try:
-        with open(file_path, 'rb') as f:
-            header_bytes = f.read(4)
-            if not header_bytes.startswith(b"EVTC"):
-                logger.warning("File %s has invalid EVTC header. Skipping.", file_path)
-                return
-    except Exception as e:
-        logger.error("Could not read header of %s: %s", file_path, e)
-        return
 
     # Determine an adaptive maximum wait time
     try:
@@ -395,6 +383,7 @@ if __name__ == "__main__":
     config_ini.read("config.ini")
 
     ARCDPS_LOG_DIR = config_ini["Settings"]["ARCDPS_LOG_DIR"]
+    MAX_WAIT_TIME =  config_ini.getint("Settings", "MAX_WAIT_TIME")
     if not os.path.isdir(ARCDPS_LOG_DIR):
         raise ValueError(f"Directory {ARCDPS_LOG_DIR} does not exist or is not a directory")
     if not os.access(ARCDPS_LOG_DIR, os.R_OK):
