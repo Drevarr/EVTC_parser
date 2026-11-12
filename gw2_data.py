@@ -130,6 +130,7 @@ team_ids = {
     2763: "Green",
     2767: "Green",
     2778: "Green",
+    2780: "Green",
     432: "Blue",
     433: "Blue",
     1277: "Blue",
